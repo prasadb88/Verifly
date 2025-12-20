@@ -22,7 +22,7 @@ async function generateWithFallback(ai, contents) {
     } catch (error) {
         if (error.message?.includes("429") || error.status === 429) {
             console.warn("gemini-2.5-flash quota exceeded. Falling back to gemini-1.5-flash...");
-            return await generateFromPrompt(ai, "gemini-1.5-flash", contents);
+            return await generateFromPrompt(ai, "gemini-2.5-flash-lite", contents);
         }
         throw error;
     }
