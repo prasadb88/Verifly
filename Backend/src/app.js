@@ -19,7 +19,12 @@ app.use(express.urlencoded({ limit: "50mb", extended: true }));
 app.use(express.static("public"));
 app.use(
     cors({
-        origin: process.env.FRONTEND_URL || "http://localhost:5173",
+        origin: [
+            process.env.FRONTEND_URL,
+            "http://localhost:5173",
+            "http://localhost:5174",
+            "https://verifly-puce.vercel.app"
+        ],
         credentials: true,
     })
 );

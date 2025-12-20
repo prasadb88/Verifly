@@ -3,7 +3,8 @@ import { v2 as cloudinary } from 'cloudinary'
 cloudinary.config({
     cloud_name: process.env.CLOUDNARY_NAME,
     api_key: process.env.CLOUDNARY_KEY,
-    api_secret: process.env.CLOUDNARY_SECRET
+    api_secret: process.env.CLOUDNARY_SECRET,
+    secure: true
 })
 
 const uploadOncloudinary = async (fileBuffer, originalname) => {
