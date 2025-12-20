@@ -47,9 +47,13 @@ Return ONLY a valid JSON object. No prose. No markdown.
 
     try {
         const contents = [...imageParts, { text: prompt }];
-        return await generateFromPrompt(ai, "gemini-2.5-flash", contents);
+        return await generateFromPrompt(ai, "gemini-1.5-flash", contents);
     } catch (e) {
         console.error("Validation Step Error:", e);
+        // Check if it's a quota error to handle gracefully upstream
+        if (e.message?.includes("429") || e.status === 429) {
+            throw e;
+        }
         return { isValid: false, issues: ["AI Validation System Error"] };
     }
 };
@@ -82,7 +86,7 @@ const extractDetails = async (ai, imageParts) => {
 
     try {
         const contents = [...imageParts, { text: prompt }];
-        const data = await generateFromPrompt(ai, "gemini-2.5-flash", contents);
+        const data = await generateFromPrompt(ai, "gemini-1.5-flash", contents);
 
         // Type coercion
         if (typeof data.year !== 'number') data.year = parseInt(data.year) || 0;
@@ -92,6 +96,9 @@ const extractDetails = async (ai, imageParts) => {
         return data;
     } catch (e) {
         console.error("Extraction Step Error:", e);
+        if (e.message?.includes("429") || e.status === 429) {
+            throw e;
+        }
         throw new Error("Failed to extract car details");
     }
 };
@@ -122,7 +129,7 @@ export const generateAIContent = async (req, res) => {
             // Fallback to text only if no images (legacy support or chat)
             const prompt = req.body.prompt || "Hello";
             const response = await ai.models.generateContent({
-                model: "gemini-2.5-flash",
+                model: "gemini-1.5-flash",
                 contents: prompt
             });
             return res.json({ success: true, data: response.text });
@@ -152,6 +159,23 @@ export const generateAIContent = async (req, res) => {
 
     } catch (error) {
         console.error("AI Controller Error:", error);
+
+        // Handle Quota/Rate Limit Errors
+        if (error.status === 429 || error.message?.includes("429") || error.message?.includes("quota")) {
+            return res.status(429).json({
+                success: false,
+                error: "AI Service Busy: Daily quota exceeded. Please try again later.",
+                isQuotaError: true
+            });
+        }
+
+        if (error.status === 503) {
+            return res.status(503).json({
+                success: false,
+                error: "AI Service Temporarily Unavailable. Please try again later."
+            });
+        }
+
         return res.status(500).json({ success: false, error: error.message });
     }
 };
