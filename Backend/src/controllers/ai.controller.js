@@ -14,6 +14,20 @@ async function generateFromPrompt(ai, model, contents) {
     return JSON.parse(cleanedText);
 }
 
+// Fallback Helper
+async function generateWithFallback(ai, contents) {
+    try {
+        console.log("Attempting generation with gemini-2.5-flash...");
+        return await generateFromPrompt(ai, "gemini-2.5-flash", contents);
+    } catch (error) {
+        if (error.message?.includes("429") || error.status === 429) {
+            console.warn("gemini-2.5-flash quota exceeded. Falling back to gemini-1.5-flash...");
+            return await generateFromPrompt(ai, "gemini-1.5-flash", contents);
+        }
+        throw error;
+    }
+}
+
 const validateImages = async (ai, imageParts) => {
     const prompt = `
       Act as a Senior Automotive Forensic Appraiser. Your task is to perform a Cross-Image Audit on a set of car photos to detect fraud, inconsistency, or missing mandatory documentation.
@@ -47,11 +61,11 @@ Return ONLY a valid JSON object. No prose. No markdown.
 
     try {
         const contents = [...imageParts, { text: prompt }];
-        return await generateFromPrompt(ai, "gemini-1.5-flash", contents);
+        return await generateWithFallback(ai, contents);
     } catch (e) {
         console.error("Validation Step Error:", e);
         // Check if it's a quota error to handle gracefully upstream
-        if (e.message?.includes("429") || e.status === 429) {
+        if ((e.message?.includes("429") || e.status === 429)) {
             throw e;
         }
         return { isValid: false, issues: ["AI Validation System Error"] };
@@ -86,7 +100,7 @@ const extractDetails = async (ai, imageParts) => {
 
     try {
         const contents = [...imageParts, { text: prompt }];
-        const data = await generateFromPrompt(ai, "gemini-1.5-flash", contents);
+        const data = await generateWithFallback(ai, contents);
 
         // Type coercion
         if (typeof data.year !== 'number') data.year = parseInt(data.year) || 0;
