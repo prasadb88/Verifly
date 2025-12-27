@@ -168,8 +168,8 @@ const AddCar = () => {
             const aiPromise = carservice.analyzeCarImages(uploadData)
                 .catch(err => {
                     console.error("AI Error:", err);
-                    // Return the specific backend error if available, otherwise generic
-                    if (err.success === false && (err.issues || err.error)) {
+                    // Service throws response.data directly
+                    if (err.success === false) {
                         return err;
                     }
                     return { success: false, error: "AI analysis failed" };
@@ -196,20 +196,27 @@ const AddCar = () => {
             // Process AI Results & Update Form
             let aiData = {};
 
-            // Check for Validation Failure (e.g., "Not a car" or missing angles)
-            /* if (aiRes && aiRes.error && aiRes.issues) {
-                const issuesList = Array.isArray(aiRes.issues) ? aiRes.issues : [aiRes.error];
-                setValidationError({
-                    title: "Image Validation Failed",
-                    issues: issuesList
-                });
-                return; // STOP HERE - Do not autofill if validation fails
-            } */
-
             if (aiRes && aiRes.success && aiRes.data) {
                 aiData = aiRes.data;
                 toast.success("AI Analysis Complete!");
             } else if (aiRes && !aiRes.success) {
+
+                // Parse Detailed Validation Errors
+                if (aiRes.details) {
+                    const issuesList = [
+                        ...(aiRes.details.inconsistencies || []),
+                        ...(aiRes.details.fraudAlerts || [])
+                    ];
+
+                    if (issuesList.length > 0) {
+                        setValidationError({
+                            title: "Validation Failed",
+                            issues: issuesList
+                        });
+                        return;
+                    }
+                }
+
                 // Fallback generic error
                 setValidationError({
                     title: "Analysis Failed",
@@ -243,7 +250,25 @@ const AddCar = () => {
             setCurrentStep(STEPS.REVIEW);
         } catch (error) {
             console.error("Analysis failed:", error);
-            toast.error("Analysis process encountered an error.");
+
+            // Handle Structure 400 Validation Error
+            if (error.response?.data?.details && !error.response.data.success) {
+                const details = error.response.data.details;
+                const issuesList = [
+                    ...(details.inconsistencies || []),
+                    ...(details.fraudAlerts || [])
+                ];
+
+                if (issuesList.length > 0) {
+                    setValidationError({
+                        title: "Validation Failed",
+                        issues: issuesList
+                    });
+                    return;
+                }
+            }
+
+            toast.error(error.response?.data?.error || "Analysis process encountered an error.");
         } finally {
             setAnalyzing(false);
         }

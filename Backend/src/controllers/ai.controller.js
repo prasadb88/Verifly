@@ -177,8 +177,23 @@ export const generateAIContent = async (req, res) => {
         // Note: Validation result is computed but we currently proceed regardless, 
         // effectively treating it as a non-blocking warning check for now.
         // In strict mode, we would uncomment the rejection logic.
-        // const validationResult = await validateImages(ai, imageParts);
-        const validationResult = { isValid: true }; // Mock validation pass
+        const validationResult = await validateImages(ai, imageParts);
+        //const validationResult = { isValid: true }; // Mock validation pass
+
+        if (!validationResult.isValid) {
+            console.log("Validation Failed:", validationResult);
+
+            const issues = [
+                ...(validationResult.inconsistencies || []),
+                ...(validationResult.fraudAlerts || [])
+            ].join(". ");
+
+            return res.status(400).json({
+                success: false,
+                error: `Image validation failed: ${issues || "Please upload clear photos of a car."}`,
+                details: validationResult
+            });
+        }
 
 
         // STEP 2: EXTRACTION
