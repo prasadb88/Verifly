@@ -25,6 +25,7 @@ import Profile from './pages/Profile'
 import CarDetails from './pages/Cardetails'
 import UserDashboard from './pages/UserDashboard'
 import ChatPage from './pages/ChatPage'
+import SharedCarView from './pages/SharedCarView'
 import Wishlist from './pages/Wishlist'
 import AddCar from './pages/AddCar'
 
@@ -108,6 +109,10 @@ const router = createBrowserRouter([
       {
         path: "/request-role",
         element: <RequestRoleChange />,
+      },
+      {
+        path: "/shared/car/:id",
+        element: <SharedCarView />,
       },
 
 

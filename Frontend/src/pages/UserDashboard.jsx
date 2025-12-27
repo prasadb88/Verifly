@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
     CheckCircle, Shield, TrendingUp, ArrowRight, Star,
     FileText, Car, Search, Clock, Layers, Calendar,
-    Mail, Settings, Bell, Tag, MessageSquare
+    Mail, Settings, Bell, Tag, MessageSquare, Heart
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../components/ui/theme-provider';
@@ -270,6 +270,9 @@ const UserDashboard = () => {
                             <LandingButton onClick={() => navigate('/cars')} variant="primary" className="text-base py-3 px-5">
                                 <Search className="w-5 h-5 mr-2" /> Start New Search
                             </LandingButton>
+                            <LandingButton onClick={() => navigate('/wishlist')} variant="secondary" className="text-base py-3 px-5">
+                                <Heart className="w-5 h-5 mr-2" /> My Wishlist
+                            </LandingButton>
                             <LandingButton onClick={() => navigate('/chat')} variant="tertiary" className="text-base py-3 px-5">
                                 <Mail className="w-5 h-5 mr-2" /> Inbox
                             </LandingButton>
@@ -411,13 +414,18 @@ const UserDashboard = () => {
 
                 {/* Quick Actions for Mobile/Tablet */}
                 <section className="py-8 sm:hidden">
-                    <div className="flex justify-between gap-4">
-                        <LandingButton onClick={() => navigate('/cars')} variant="primary" className="text-base py-3 px-5 flex-1">
+                    <div className="flex flex-col gap-4">
+                        <LandingButton onClick={() => navigate('/cars')} variant="primary" className="text-base py-3 px-5 w-full">
                             <Search className="w-5 h-5 mr-2" /> Start New Search
                         </LandingButton>
-                        <LandingButton onClick={() => navigate('/settings')} variant="tertiary" className="text-base py-3 px-5 flex-1">
-                            <Settings className="w-5 h-5 mr-2" /> Settings
-                        </LandingButton>
+                        <div className="flex gap-4">
+                            <LandingButton onClick={() => navigate('/wishlist')} variant="secondary" className="text-base py-3 px-5 flex-1">
+                                <Heart className="w-5 h-5 mr-2" /> Wishlist
+                            </LandingButton>
+                            <LandingButton onClick={() => navigate('/settings')} variant="tertiary" className="text-base py-3 px-5 flex-1">
+                                <Settings className="w-5 h-5 mr-2" /> Settings
+                            </LandingButton>
+                        </div>
                     </div>
                 </section>
 

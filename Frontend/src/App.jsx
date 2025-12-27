@@ -45,19 +45,20 @@ function App() {
     }
   }, [isAuthenticated, dispatch]);
 
+  const isSharedPage = location.pathname.startsWith('/shared/');
   if (loading) return null;
 
   return isAuthenticated ? (
     <>
-      {!isChatPage && <Header />}
+      {!isChatPage && !isSharedPage && <Header />}
       <Outlet />
-      {!isChatPage && <Footer />}
+      {!isChatPage && !isSharedPage && <Footer />}
     </>
   ) : (
     <>
-      <Header />
-      <Homepage />
-      <Footer />
+      {!isSharedPage && <Header />}
+      <Outlet />
+      {!isSharedPage && <Footer />}
     </>
   )
 }

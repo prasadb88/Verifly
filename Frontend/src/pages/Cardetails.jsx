@@ -3,8 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import {
     Calendar, Gauge, Fuel, Cog, ShieldCheck, MapPin,
     User, MessageCircle, AlertTriangle, CheckCircle,
-    ChevronLeft, Share2, Heart, ArrowRight, X, Clock, Car, FileText, Trash2, Edit
+    ChevronLeft, Share2, Heart, ArrowRight, X, Clock, Car, FileText, Trash2, Edit, Copy, Mail, Facebook, Linkedin, Twitter
 } from 'lucide-react';
+import { toast } from 'sonner';
 import carservice from '../config/carservice';
 import testdriveservice from '../config/testdriveservice';
 import { Loader2 } from 'lucide-react';
@@ -37,6 +38,34 @@ const CarDetails = () => {
     const [tdTime, setTdTime] = useState('');
     const [tdLoading, setTdLoading] = useState(false);
     const [tdStatus, setTdStatus] = useState({ msg: '', type: '' });
+
+    // Share Modal State
+    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+
+    const shareLink = `${window.location.origin}/shared/car/${id}`;
+
+    const handleShareClick = () => {
+        setIsShareModalOpen(true);
+    };
+
+    const copyToClipboard = () => {
+        navigator.clipboard.writeText(shareLink);
+        toast.success("Link copied to clipboard!");
+        setIsShareModalOpen(false);
+    };
+
+    const shareViaWhatsApp = () => {
+        const text = `Check out this verified car on Verifly: ${shareLink}`;
+        window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+        setIsShareModalOpen(false);
+    };
+
+    const shareViaEmail = () => {
+        const subject = `Check out this ${car.year} ${car.maker} ${car.model}`;
+        const body = `I found this amazing car on Verifly and thought you might be interested:\n\n${shareLink}`;
+        window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        setIsShareModalOpen(false);
+    };
 
     // Update Car Modal State
     const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
@@ -271,7 +300,10 @@ const CarDetails = () => {
                         <span className="font-medium hidden md:inline">Back</span>
                     </button>
                     <div className="flex items-center gap-2">
-                        <button className="p-2 hover:bg-secondary rounded-full transition-colors text-muted-foreground hover:text-foreground">
+                        <button
+                            onClick={handleShareClick}
+                            className="p-2 hover:bg-secondary rounded-full transition-colors text-muted-foreground hover:text-foreground"
+                        >
                             <Share2 className="w-5 h-5" />
                         </button>
                         <button
@@ -716,6 +748,79 @@ const CarDetails = () => {
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Share Modal */}
+            {isShareModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4 animate-in fade-in duration-300">
+                    <div className="bg-card w-full max-w-md rounded-3xl shadow-2xl border border-border overflow-hidden animate-in zoom-in-95 duration-300">
+                        {/* Header */}
+                        <div className="px-6 py-5 border-b border-border flex justify-between items-center bg-secondary/30">
+                            <h3 className="text-lg font-bold flex items-center gap-2">
+                                <Share2 className="w-5 h-5 text-primary" /> Share Vehicle
+                            </h3>
+                            <button onClick={() => setIsShareModalOpen(false)} className="w-8 h-8 rounded-full bg-background hover:bg-secondary flex items-center justify-center transition-colors">
+                                <X className="w-4 h-4 text-muted-foreground" />
+                            </button>
+                        </div>
+
+                        <div className="p-6 space-y-6">
+                            {/* Copy Link Section - Prominent */}
+                            <div className="space-y-2">
+                                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider ml-1">Page Link</label>
+                                <div className="flex bg-secondary/50 p-1.5 rounded-xl border border-border group focus-within:border-primary/50 focus-within:ring-2 focus-within:ring-primary/10 transition-all">
+                                    <div className="flex-1 px-3 py-2 text-sm text-foreground/80 truncate font-mono select-all">
+                                        {shareLink}
+                                    </div>
+                                    <button
+                                        onClick={copyToClipboard}
+                                        className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 hover:brightness-110 active:scale-95 transition-all shadow-lg shadow-primary/20"
+                                    >
+                                        <Copy className="w-4 h-4" /> Copy
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Separator */}
+                            <div className="relative">
+                                <div className="absolute inset-0 flex items-center">
+                                    <span className="w-full border-t border-border"></span>
+                                </div>
+                                <div className="relative flex justify-center text-xs uppercase">
+                                    <span className="bg-card px-2 text-muted-foreground">Or share via</span>
+                                </div>
+                            </div>
+
+                            {/* Social Grid */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <button
+                                    onClick={shareViaWhatsApp}
+                                    className="flex items-center justify-center gap-3 p-3.5 rounded-xl bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20 border border-[#25D366]/20 transition-all font-semibold hover:scale-[1.02]"
+                                >
+                                    <MessageCircle className="w-5 h-5" /> WhatsApp
+                                </button>
+                                <button
+                                    onClick={shareViaEmail}
+                                    className="flex items-center justify-center gap-3 p-3.5 rounded-xl bg-blue-500/10 text-blue-600 hover:bg-blue-500/20 border border-blue-500/20 transition-all font-semibold hover:scale-[1.02]"
+                                >
+                                    <Mail className="w-5 h-5" /> Email
+                                </button>
+                                <button
+                                    onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareLink)}`, '_blank')}
+                                    className="flex items-center justify-center gap-3 p-3.5 rounded-xl bg-[#1877F2]/10 text-[#1877F2] hover:bg-[#1877F2]/20 border border-[#1877F2]/20 transition-all font-semibold hover:scale-[1.02]"
+                                >
+                                    <Facebook className="w-5 h-5" /> Facebook
+                                </button>
+                                <button
+                                    onClick={() => window.open(`https://twitter.com/intent/tweet?url=${encodeURIComponent(shareLink)}&text=Check out this amazing car!`, '_blank')}
+                                    className="flex items-center justify-center gap-3 p-3.5 rounded-xl bg-black/5 dark:bg-white/10 text-foreground hover:bg-black/10 dark:hover:bg-white/20 border border-border transition-all font-semibold hover:scale-[1.02]"
+                                >
+                                    <Twitter className="w-5 h-5" /> X (Twitter)
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}
