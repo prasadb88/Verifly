@@ -72,16 +72,16 @@ const ChatPage = () => {
     useEffect(() => {
         if (socket) {
             const handleNewMessage = (newMessage) => {
-                // If I sent it, it's already added by sendMessage thunk
-                if (newMessage.sender === currentUser._id) return;
+                const senderId = typeof newMessage.sender === 'object' ? newMessage.sender._id : newMessage.sender;
 
-                if (selectedUser && (newMessage.sender === selectedUser._id || newMessage.receiver === selectedUser._id)) {
+                // If I sent it, it's already added by sendMessage thunk
+                if (senderId === currentUser._id) return;
+
+                if (selectedUser && (senderId === selectedUser._id || newMessage.receiver === selectedUser._id)) {
                     dispatch(addMessage(newMessage));
-                    // If chat is open, mark as read immediately in backend (optional but good UI)
-                    // Currently relying on getMessages call when opening, but live updates might need an API call to mark read
                 } else {
                     // Mark as unread if not currently open
-                    setUnreadUsers(prev => new Set(prev).add(newMessage.sender));
+                    setUnreadUsers(prev => new Set(prev).add(senderId));
                 }
 
                 // Refresh partners list to bubble up new conversations and update last message
@@ -334,7 +334,7 @@ const ChatPage = () => {
                             ) : (
                                 messages.map((msg, idx) => {
                                     const senderId = typeof msg.sender === 'object' ? msg.sender._id : msg.sender;
-                                    const isMe = senderId == currentUser._id;
+                                    const isMe = senderId === currentUser._id;
                                     return (
                                         <div
                                             key={idx}

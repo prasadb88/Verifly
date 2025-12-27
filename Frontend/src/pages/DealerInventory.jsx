@@ -13,20 +13,13 @@ function DealerInventory() {
     useEffect(() => {
         const fetchMyCars = async () => {
             try {
-                console.log("Debug: carservice object:", carservice);
-                console.log("Debug: Type of getmycars:", typeof carservice.getmycars);
-
-                console.log("Fetching dealer cars...");
                 const response = await carservice.getmycars();
-                console.log("Dealer Inventory Response:", response);
 
                 let dataToSet = [];
                 // Robust response handling similar to Carlisting
                 if (response && response.data) {
-                    console.log("Data from response.data:", response.data);
                     dataToSet = response.data;
                 } else if (Array.isArray(response)) {
-                    console.log("Data is direct array:", response);
                     dataToSet = response;
                 } else if (response && response.success === false) {
                     // Handle explicit API failure

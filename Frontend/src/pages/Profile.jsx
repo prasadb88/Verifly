@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { User, Mail, Phone, MapPin, Edit, Save, Loader, XCircle, CheckCircle, Camera } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Loader, XCircle, CheckCircle, Camera } from 'lucide-react';
 import authservice from '../config/authservice';
 import { setUser } from '../Store/authSlice';
 

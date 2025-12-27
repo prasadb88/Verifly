@@ -1,5 +1,5 @@
 import React from 'react';
-import { Camera, Car, Gauge, ShieldCheck, AlertCircle, CheckCircle2, Layers, ImagePlus, ScanLine } from 'lucide-react';
+import { Car, Gauge, AlertCircle, Layers, ImagePlus, ScanLine } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 

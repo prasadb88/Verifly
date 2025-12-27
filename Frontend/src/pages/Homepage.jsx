@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckCircle, Zap, Shield, TrendingUp, ArrowRight, UserPlus, LogIn, Star, Users, Camera, FileText, Car, Sun, Moon, Search, Award } from 'lucide-react';
+import { CheckCircle, Zap, Shield, ArrowRight, Users, Camera, FileText } from 'lucide-react';
 import { useTheme } from '../components/ui/theme-provider';
 
 

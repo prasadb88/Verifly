@@ -9,11 +9,17 @@ import { TestDrive } from "../models/testdrive.model.js";
 import { Car } from "../models/car.model.js";
 import { Message } from "../models/message.model.js";
 import { io, getreciverSocketId } from "../lib/socket.js";
+
 const EMAIL_REGEX = /^[\w\-\.]+@([\w-]+\.)+[\w-]{2,}$/;
 const NAME_REGEX = /^[a-zA-Z ]+$/;
 const PHONE_REGEX = /^[6-9]\d{9}$/;
 const PASSWORD_REGEX = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
+/**
+ * Generate Access and Refresh tokens for a user
+ * @param {User} user - User document
+ * @returns {Promise<{accessToken: string, refreshToken: string}>}
+ */
 const generateToken = async (user) => {
     const accessToken = await user.genrateAccesstoken();
     const refreshToken = await user.genrateRefreshtoken();
@@ -22,6 +28,10 @@ const generateToken = async (user) => {
     return { accessToken, refreshToken };
 }
 
+/**
+ * Register a new user
+ * @route POST /api/v1/user/registeruser
+ */
 const registerUser = asyncHandler(async (req, res) => {
     const { username, email, name, password, role, phoneno, address } = req.body;
 
@@ -49,6 +59,7 @@ const registerUser = asyncHandler(async (req, res) => {
     if (existingUser) {
         throw new ApiError(409, "User with email, username or phone number already exists");
     }
+
     let avatar;
     if (req.file) {
         const avatarBuffer = req.file.buffer;
@@ -70,7 +81,7 @@ const registerUser = asyncHandler(async (req, res) => {
         phoneno,
         address,
         profileImage: avatar,
-        isprofilecompleted: true // Since we validate all fields are present
+        isprofilecompleted: true
     });
 
     const createdUser = await User.findById(user._id).select("-password -refreshtoken");
@@ -84,6 +95,10 @@ const registerUser = asyncHandler(async (req, res) => {
     );
 });
 
+/**
+ * Login user
+ * @route POST /api/v1/user/login
+ */
 const login = asyncHandler(async (req, res) => {
     const { username, email, password } = req.body;
     if (!username && !email) {
@@ -97,7 +112,7 @@ const login = asyncHandler(async (req, res) => {
         ]
     });
     if (!user) {
-        throw new ApiError(400, "Invaild Credinatial")
+        throw new ApiError(400, "Invalid Credentials")
     }
     const ispasswordcorrect = await user.isPasswordCorrect(password);
     if (!ispasswordcorrect) {
@@ -121,6 +136,10 @@ const login = asyncHandler(async (req, res) => {
         );
 });
 
+/**
+ * Logout user
+ * @route GET /api/v1/user/logout
+ */
 const logout = asyncHandler(async (req, res) => {
     const user = req.user
 
@@ -142,14 +161,18 @@ const logout = asyncHandler(async (req, res) => {
         status(200).
         clearCookie("accesstoken", option).
         clearCookie("refreshtoken", option).
-        json(new ApiResponse(200, {}, "logout sucessfully"))
-})
+        json(new ApiResponse(200, {}, "logout successfully"))
+});
 
+/**
+ * Refresh access token
+ * @route GET /api/v1/user/genratenewtoken
+ */
 const genratenewtoken = asyncHandler(async (req, res) => {
     const oldtoken = req.cookies?.refreshtoken || req.body?.accesstoken
 
     if (!oldtoken) {
-        throw new ApiError(401, "please Login Agian")
+        throw new ApiError(401, "Please Login Again")
     }
     const decodedtoken = jwt.verify(oldtoken, process.env.REFRESHTOKEN_SECRET)
 
@@ -176,12 +199,15 @@ const genratenewtoken = asyncHandler(async (req, res) => {
         cookie("refreshtoken", refreshToken, option).
         cookie("accesstoken", accessToken, option).
         json(
-            new ApiResponse(200, { accessToken, refreshToken }, "New Tokens Genrate Sucessfully ")
+            new ApiResponse(200, { accessToken, refreshToken }, "New Tokens Generated Successfully")
         );
+});
 
-})
 
-
+/**
+ * Change current password
+ * @route PATCH /api/v1/user/changepassword
+ */
 const changePassword = asyncHandler(async (req, res) => {
     const { oldPassword, newPassword } = req.body;
     if (!oldPassword || !newPassword) {
@@ -195,8 +221,12 @@ const changePassword = asyncHandler(async (req, res) => {
     user.password = newPassword;
     await user.save();
     return res.status(200).json(new ApiResponse(200, {}, "Password changed successfully"));
-})
+});
 
+/**
+ * Update user profile
+ * @route PATCH /api/v1/user/updateprofile
+ */
 const updateProfile = asyncHandler(async (req, res) => {
     const { name, email, phoneno, address, username, profileImage } = req.body;
     const user = req.user;
@@ -221,69 +251,58 @@ const updateProfile = asyncHandler(async (req, res) => {
 
     await user.save();
     return res.status(200).json(new ApiResponse(200, user, "Profile updated successfully"));
-})
+});
 
+/**
+ * Get current user details
+ * @route GET /api/v1/user/getuser
+ */
 const getuser = asyncHandler(async (req, res) => {
     const { id } = req.user
     const user = await User.findById(id).select("-password -refreshtoken")
     if (!user) {
-        throw new ApiError(400, "Problem in the get user")
+        throw new ApiError(400, "Problem fetching user")
     }
     return res.
         status(200).
-        json(new ApiResponse(200, user, "user Fetch Suessfully Sucessfully"))
+        json(new ApiResponse(200, user, "User fetched successfully"))
+});
 
-
-})
-
+/**
+ * Complete user profile
+ * @route POST /api/v1/user/complete-profile
+ */
 const completeProfile = asyncHandler(async (req, res) => {
     const user = req.user;
     const { name, email, phoneno, address, username, profileImage, } = req.body;
-    if (name) {
-        user.name = name;
-    }
-    if (email) {
-        user.email = email;
-    }
-    if (phoneno) {
-        user.phoneno = phoneno;
-    }
-    if (address) {
-        user.address = address;
-    }
-    if (username) {
-        user.username = username;
-    }
+    if (name) user.name = name;
+    if (email) user.email = email;
+    if (phoneno) user.phoneno = phoneno;
+    if (address) user.address = address;
+    if (username) user.username = username;
+
 
     if (req.file) {
         const avatarBuffer = req.file.buffer;
         const avatar = await uploadOncloudinary(avatarBuffer, req.file.originalname);
         user.profileImage = avatar;
     } else if (profileImage) {
-        // Allow setting explicitly if strictly needed, but file upload takes precedence
         user.profileImage = profileImage;
     }
-
-    // Debugging logs
-    console.error("completeProfile Request Body:", req.body);
-    console.error("completeProfile File:", req.file ? "File Present" : "No File");
 
     if (user.email && user.username && user.name && user.phoneno && user.address && user.profileImage) {
         user.isprofilecompleted = true;
     } else {
-        console.error("Profile incomplete. final user state:", {
-            email: user.email,
-            username: user.username,
-            name: user.name,
-            phoneno: user.phoneno,
-            address: user.address,
-            profileImage: user.profileImage
-        });
+        // Profile intentionally left incomplete if fields missing
     }
     await user.save();
     return res.status(200).json(new ApiResponse(200, { isprofilecompleted: user.isprofilecompleted }, "Profile completed successfully"));
-})
+});
 
+/**
+ * Initiate Forgot Password Flow
+ * @route POST /api/v1/user/forgot-password
+ */
 const forgotPassword = asyncHandler(async (req, res) => {
     const { email } = req.body;
     if (!email) {
@@ -314,6 +333,10 @@ const forgotPassword = asyncHandler(async (req, res) => {
     }
 });
 
+/**
+ * Verify OTP
+ * @route POST /api/v1/user/verify-otp
+ */
 const verifyOTP = asyncHandler(async (req, res) => {
     const { email, otp } = req.body;
     if (!email || !otp) {
@@ -333,6 +356,10 @@ const verifyOTP = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, {}, "OTP verified successfully"));
 });
 
+/**
+ * Reset Password
+ * @route POST /api/v1/user/reset-password
+ */
 const resetPassword = asyncHandler(async (req, res) => {
     const { email, otp, newPassword } = req.body;
     if (!email || !otp || !newPassword) {
@@ -357,6 +384,10 @@ const resetPassword = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, {}, "Password reset successfully"));
 });
 
+/**
+ * Toggle Wishlist
+ * @route POST /api/v1/user/wishlist/toggle
+ */
 const toggleWishlist = asyncHandler(async (req, res) => {
     const { carId } = req.body;
     const userId = req.user._id;
@@ -376,15 +407,16 @@ const toggleWishlist = asyncHandler(async (req, res) => {
 
     await user.save();
 
-    // Emit socket event
-
-
     return res.status(200).json(
         new ApiResponse(200, { wishlist: user.wishlist, isAdded: !isAdded },
             isAdded ? "Removed from wishlist" : "Added to wishlist")
     );
 });
 
+/**
+ * Get Wishlist
+ * @route GET /api/v1/user/wishlist
+ */
 const getWishlist = asyncHandler(async (req, res) => {
     const user = await req.user.populate({
         path: "wishlist",
@@ -397,13 +429,15 @@ const getWishlist = asyncHandler(async (req, res) => {
 });
 
 
+/**
+ * Get Dashboard Statistics
+ * @route GET /api/v1/user/dashboard-stats
+ */
 const getDashboardStats = asyncHandler(async (req, res) => {
     const userId = req.user._id;
-    const userRole = req.user.role; // "buyer", "dealer", "admin"
+    const userRole = req.user.role;
 
     // 1. Profile Status (Common)
-    console.log("DEBUG: getDashboardStats for User:", req.user._id, "Role:", userRole);
-    // Explicitly check for boolean true
     const isProfileCompleted = req.user.isprofilecompleted;
     const profileStatus = isProfileCompleted ? "Verified" : "Pending";
     const profileColor = isProfileCompleted ? "text-green-500" : "text-orange-500";
@@ -412,13 +446,10 @@ const getDashboardStats = asyncHandler(async (req, res) => {
     // --- DEALER / ADMIN DASHBOARD ---
     if (userRole === "dealer" || userRole === "admin") {
         // 1. Active Listings
-        console.log(`DEBUG: Counting listings for dealer: ${userId}`);
         let totalListings = await Car.countDocuments({ delear: userId });
         if (totalListings === 0) {
-            console.log("DEBUG: Zero listings found with ObjectId, trying String ID match");
             totalListings = await Car.countDocuments({ delear: userId.toString() });
         }
-        console.log(`DEBUG: Found ${totalListings} listings for dealer ${userId}`);
 
         // 2. Active Conversations (Unique users chatted with)
         const sentMessages = await Message.distinct("receiver", { sender: userId });
@@ -471,7 +502,6 @@ const getDashboardStats = asyncHandler(async (req, res) => {
         });
 
         // 6. Active Engagements (Upcoming Test Drives list)
-        // Fetch approved test drives for engagements section
         const activeEngagementsDocs = await TestDrive.find({
             dealer: userId,
             status: 'approved',
@@ -479,7 +509,7 @@ const getDashboardStats = asyncHandler(async (req, res) => {
         })
             .populate("car", "maker model year price")
             .populate("buyer", "username name phoneno")
-            .sort({ requesteddate: 1 }) // Earliest first
+            .sort({ requesteddate: 1 })
             .limit(3);
 
         const engagements = activeEngagementsDocs.map(td => {
@@ -508,12 +538,12 @@ const getDashboardStats = asyncHandler(async (req, res) => {
             ],
             activity: recentActivity,
             engagements: engagements,
-            isSeller: true // Flag for frontend
+            isSeller: true
         }, "Seller Dashboard stats fetched successfully"));
     }
 
 
-    // --- BUYER DASHBOARD (Existing Logic) ---
+    // --- BUYER DASHBOARD ---
     // 2. Active Conversations (Unique users chatted with)
     const sentMessages = await Message.distinct("receiver", { sender: userId });
     const receivedMessages = await Message.distinct("sender", { receiver: userId });
@@ -559,30 +589,27 @@ const getDashboardStats = asyncHandler(async (req, res) => {
         return {
             icon: "Car", // Frontend maps string to icon component
             title,
-            time: new Date(td.updatedAt).toLocaleDateString(), // Simplification
+            time: new Date(td.updatedAt).toLocaleDateString(),
             color,
             id: td._id
         };
     });
 
     // 6. Active Engagements (Viewings + Wishlist Items)
-    // Fetch generic active test drives for engagements section
     const activeTestDrives = await TestDrive.find({
         buyer: userId,
         status: { $in: ["approved", "pending"] },
         requesteddate: { $gte: new Date() }
     })
         .populate("car", "maker model year price")
-        .populate("dealer", "username name businessName") // Populate Dealer Info
+        .populate("dealer", "username name businessName")
         .limit(3);
 
-    // Fetch populate wishlist
     const userWithWishlist = await req.user.populate("wishlist");
-    const wishlistItems = userWithWishlist.wishlist.slice(0, 3); // Top 3
+    const wishlistItems = userWithWishlist.wishlist.slice(0, 3);
 
     let engagements = [];
 
-    // Map Test Drives to Engagements
     activeTestDrives.forEach(td => {
         const dealerName = td.dealer?.name || td.dealer?.username || "Dealer";
         engagements.push({
@@ -591,7 +618,7 @@ const getDashboardStats = asyncHandler(async (req, res) => {
             title: `${td.car?.year} ${td.car?.maker} ${td.car?.model}`,
             subtitle: `Dealer: ${dealerName} | Status: ${td.status === 'approved' ? 'Confirmed' : 'Pending'}`,
             statusText: td.status === 'approved' ? 'View Map' : 'View Details',
-            icon: 'Calendar', // Maps to Calendar icon
+            icon: 'Calendar',
             color: 'text-yellow-600',
             bg: 'bg-yellow-100 dark:bg-yellow-900/30',
             actionIcon: 'Clock',
@@ -599,8 +626,6 @@ const getDashboardStats = asyncHandler(async (req, res) => {
         });
     });
 
-    // Map Wishlist to Engagements (if space permits or just mix them)
-    // prioritizing viewings first
     if (engagements.length < 3) {
         wishlistItems.forEach(car => {
             if (engagements.length >= 3) return;

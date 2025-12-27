@@ -17,7 +17,7 @@ const TestDriveSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ["pending", "approved", "rejected", "completed", "cancelled", "inprogress"],
+        enum: ["pending", "accepted", "approved", "rejected", "completed", "cancelled", "in-progress"],
         default: "pending"
     },
     requesteddate: {

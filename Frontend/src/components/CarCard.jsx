@@ -97,7 +97,7 @@ const CarCard = ({ car }) => {
                     </div>
                     <div className="text-right">
                         <div className="text-xl font-extrabold text-foreground tracking-tight">
-                            ${(Number(car.price) || 0).toLocaleString()}
+                            ₹{(Number(car.price) || 0).toLocaleString('en-IN')}
                         </div>
                         {/* <div className="text-xs font-medium text-muted-foreground">
                             Exclude. Tax

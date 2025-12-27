@@ -27,6 +27,8 @@ const AddCar = () => {
     const [detectionResults, setDetectionResults] = useState(null);
     const [analysisData, setAnalysisData] = useState(null);
     const [validationError, setValidationError] = useState(null);
+    const [fetchingRc, setFetchingRc] = useState(false);
+    const [isRcFetched, setIsRcFetched] = useState(false);
 
     // Camera State
     const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -138,10 +140,10 @@ const AddCar = () => {
     }, []);
 
     const runAIAnalysis = async () => {
-        if (images.length < 7) {
-            toast.error("Please upload at least 7 images as per the guide.");
-            return;
-        }
+        /*         if (images.length < 7) {
+                    toast.error("Please upload at least 7 images as per the guide.");
+                    return;
+                } */
 
         setAnalyzing(true);
         try {
@@ -150,31 +152,38 @@ const AddCar = () => {
                 uploadData.append('files', image);
             });
 
-            // 1. Python YOLO Damage Detection
-            const yoloPromise = axios.post('http://127.0.0.1:8000/detect', uploadData)
+            // --- PARALLEL EXECUTION START ---
+            // We run both the local YOLO model (for damage detection) and the backend Gemini AI (for car details) 
+            // in parallel to reduce total waiting time for the user.
+
+            // 1. Python YOLO Damage Detection Request
+            const yoloPromise = axios.post(`${import.meta.env.VITE_DAMAGE_DETECTION_URL}/detect`, uploadData)
                 .catch(err => {
                     console.error("YOLO Error:", err);
+                    // Return a safe fallback structure so Promise.all doesn't fail entirely if YOLO is down
                     return { data: { error: "Damage detection failed" } };
                 });
 
-            // 2. AI Analysis from Backend
+            // 2. AI Analysis Request (Gemini) via Backend
             const aiPromise = carservice.analyzeCarImages(uploadData)
                 .catch(err => {
                     console.error("AI Error:", err);
-                    // Return the specific backend error if available
+                    // Return the specific backend error if available, otherwise generic
                     if (err.success === false && (err.issues || err.error)) {
                         return err;
                     }
                     return { success: false, error: "AI analysis failed" };
                 });
 
-            // Wait for both results
+            // Wait for both results to complete
             const [yoloRes, aiRes] = await Promise.all([yoloPromise, aiPromise]);
+            // --- PARALLEL EXECUTION END ---
 
             // Process YOLO Results
             let damageReport = "None detected";
             if (yoloRes.data && yoloRes.data.results) {
                 setDetectionResults(yoloRes.data.results);
+                // Extract unique damage classes with high confidence
                 const damages = yoloRes.data.results
                     .flatMap(r => r.detections)
                     .map(d => `${d.class_name} (${Math.round(d.confidence * 100)}%)`);
@@ -184,20 +193,18 @@ const AddCar = () => {
                 }
             }
 
-            // Process AI Results
+            // Process AI Results & Update Form
             let aiData = {};
 
-            // Check for Validation Failure
-            if (aiRes && aiRes.error && aiRes.issues) {
-                // Validation Failed Backend Side
+            // Check for Validation Failure (e.g., "Not a car" or missing angles)
+            /* if (aiRes && aiRes.error && aiRes.issues) {
                 const issuesList = Array.isArray(aiRes.issues) ? aiRes.issues : [aiRes.error];
                 setValidationError({
                     title: "Image Validation Failed",
                     issues: issuesList
                 });
-                // toast.error(`Image Validation Failed`); 
-                return; // STOP HERE
-            }
+                return; // STOP HERE - Do not autofill if validation fails
+            } */
 
             if (aiRes && aiRes.success && aiRes.data) {
                 aiData = aiRes.data;
@@ -211,10 +218,11 @@ const AddCar = () => {
                 return;
             }
 
+            // Auto-fill the form with AI extracted data
             setFormData(prev => ({
                 ...prev,
                 damage: damageReport,
-                // Merge AI Data
+                // Merge AI Data, keeping manual edits if they were somehow already present (though unlikely at this stage)
                 maker: aiData.make || prev.maker,
                 model: aiData.model || prev.model,
                 year: aiData.year ? String(aiData.year) : prev.year,
@@ -231,12 +239,57 @@ const AddCar = () => {
                 setAnalysisData(aiData);
             }
 
+            // Move to Review Step
             setCurrentStep(STEPS.REVIEW);
         } catch (error) {
             console.error("Analysis failed:", error);
             toast.error("Analysis process encountered an error.");
         } finally {
             setAnalyzing(false);
+        }
+    };
+
+    const handleFetchRcDetails = async () => {
+        const regNo = formData.registrationnumber;
+        if (!regNo) {
+            toast.error("Please enter a Registration Number first");
+            return;
+        }
+
+        // Basic Client-side Validation (Example match: MH12AB1234 or MH 12 AB 1234)
+        const indianRegRegex = /^[A-Z]{2}\s?[0-9]{1,2}\s?[A-Z]{0,3}\s?[0-9]{4}$/;
+        if (!indianRegRegex.test(regNo.toUpperCase())) {
+            toast.error("Invalid Format. Use format like MH12AB1234");
+            return;
+        }
+
+        setFetchingRc(true);
+        try {
+            const response = await carservice.getRcDetails(regNo);
+            if (response.success && response.data) {
+                const data = response.data;
+                toast.success("RC Details Fetched Successfully!");
+
+                setFormData(prev => ({
+                    ...prev,
+                    chassisnumber: data.chassisnumber || prev.chassisnumber,
+                    enginenumber: data.enginenumber || prev.enginenumber,
+                    registrationdate: data.registrationdate || prev.registrationdate,
+                    registrationplace: data.registrationplace || prev.registrationplace,
+                    owner: data.owner || prev.owner,
+                    // Insurance Details
+                    insurancecompany: data.insurancecompany || prev.insurancecompany,
+                    insurancevalidity: data.insurancevalidity || prev.insurancevalidity,
+                    insurancepremium: data.insurancepremium || prev.insurancepremium,
+                    insurancestatus: data.insurancestatus || prev.insurancestatus
+                }));
+                setIsRcFetched(true);
+            }
+        } catch (error) {
+            console.error("Failed to fetch RC details:", error);
+            toast.error(error.message || "Failed to fetch RC details");
+        } finally {
+            setFetchingRc(false);
         }
     };
 
@@ -574,7 +627,7 @@ const AddCar = () => {
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="owner" className="text-gray-700 dark:text-gray-300">Ownership</Label>
-                                    <Input id="owner" name="owner" value={formData.owner} onChange={handleChange} className="h-11 dark:bg-gray-700/50" />
+                                    <Input id="owner" name="owner" value={formData.owner} onChange={handleChange} className={`h-11 dark:bg-gray-700/50 ${isRcFetched ? 'cursor-not-allowed opacity-75' : ''}`} readOnly={isRcFetched} />
                                 </div>
 
                                 <div className="col-span-full space-y-2">
@@ -593,23 +646,40 @@ const AddCar = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
                                 <div className="space-y-2">
                                     <Label htmlFor="registrationnumber">Registration Number</Label>
-                                    <Input id="registrationnumber" name="registrationnumber" value={formData.registrationnumber} onChange={handleChange} placeholder="MH12AB1234" className="uppercase dark:bg-gray-700/50" />
+                                    <div className="flex gap-2">
+                                        <Input
+                                            id="registrationnumber"
+                                            name="registrationnumber"
+                                            value={formData.registrationnumber}
+                                            onChange={(e) => handleChange({ target: { name: e.target.name, value: e.target.value.toUpperCase() } })}
+                                            placeholder="MH12AB1234"
+                                            className="uppercase dark:bg-gray-700/50"
+                                        />
+                                        <Button
+                                            type="button"
+                                            onClick={handleFetchRcDetails}
+                                            disabled={fetchingRc || !formData.registrationnumber}
+                                            className="shrink-0 bg-blue-600 hover:bg-blue-700 text-white"
+                                        >
+                                            {fetchingRc ? <Loader2 className="w-4 h-4 animate-spin" /> : "Fetch RC"}
+                                        </Button>
+                                    </div>
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="registrationdate">Registration Date</Label>
-                                    <Input type="date" id="registrationdate" name="registrationdate" value={formData.registrationdate} onChange={handleChange} className="dark:bg-gray-700/50" />
+                                    <Input type="date" id="registrationdate" name="registrationdate" value={formData.registrationdate} onChange={handleChange} className={`dark:bg-gray-700/50 ${isRcFetched ? 'cursor-not-allowed opacity-75' : ''}`} readOnly={isRcFetched} />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="registrationplace">Registration Place (RTO)</Label>
-                                    <Input id="registrationplace" name="registrationplace" value={formData.registrationplace} onChange={handleChange} placeholder="Pune RTO" className="dark:bg-gray-700/50" />
+                                    <Input id="registrationplace" name="registrationplace" value={formData.registrationplace} onChange={handleChange} placeholder="Pune RTO" className={`dark:bg-gray-700/50 ${isRcFetched ? 'cursor-not-allowed opacity-75' : ''}`} readOnly={isRcFetched} />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="chassisnumber">Chassis Number</Label>
-                                    <Input id="chassisnumber" name="chassisnumber" value={formData.chassisnumber} onChange={handleChange} className="uppercase dark:bg-gray-700/50" />
+                                    <Input id="chassisnumber" name="chassisnumber" value={formData.chassisnumber} onChange={handleChange} className={`uppercase dark:bg-gray-700/50 ${isRcFetched ? 'cursor-not-allowed opacity-75' : ''}`} readOnly={isRcFetched} />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="enginenumber">Engine Number</Label>
-                                    <Input id="enginenumber" name="enginenumber" value={formData.enginenumber} onChange={handleChange} className="uppercase dark:bg-gray-700/50" />
+                                    <Input id="enginenumber" name="enginenumber" value={formData.enginenumber} onChange={handleChange} className={`uppercase dark:bg-gray-700/50 ${isRcFetched ? 'cursor-not-allowed opacity-75' : ''}`} readOnly={isRcFetched} />
                                 </div>
                             </div>
                         </div>
@@ -623,8 +693,8 @@ const AddCar = () => {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
                                 <div className="space-y-2">
                                     <Label htmlFor="insurancestatus">Insurance Status</Label>
-                                    <Select name="insurancestatus" value={formData.insurancestatus} onValueChange={(val) => handleSelectChange('insurancestatus', val)}>
-                                        <SelectTrigger>
+                                    <Select name="insurancestatus" value={formData.insurancestatus} onValueChange={(val) => handleSelectChange('insurancestatus', val)} disabled={isRcFetched}>
+                                        <SelectTrigger className={isRcFetched ? 'cursor-not-allowed opacity-75' : ''}>
                                             <SelectValue placeholder="Select Status" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -638,15 +708,15 @@ const AddCar = () => {
                                     <>
                                         <div className="space-y-2">
                                             <Label htmlFor="insurancecompany">Insurance Company</Label>
-                                            <Input id="insurancecompany" name="insurancecompany" value={formData.insurancecompany} onChange={handleChange} placeholder="e.g. HDFC Ergo" className="dark:bg-gray-700/50" />
+                                            <Input id="insurancecompany" name="insurancecompany" value={formData.insurancecompany} onChange={handleChange} placeholder="e.g. HDFC Ergo" className={`dark:bg-gray-700/50 ${isRcFetched ? 'cursor-not-allowed opacity-75' : ''}`} readOnly={isRcFetched} />
                                         </div>
                                         <div className="space-y-2">
                                             <Label htmlFor="insurancevalidity">Validity Through</Label>
-                                            <Input type="date" id="insurancevalidity" name="insurancevalidity" value={formData.insurancevalidity} onChange={handleChange} className="dark:bg-gray-700/50" />
+                                            <Input type="date" id="insurancevalidity" name="insurancevalidity" value={formData.insurancevalidity} onChange={handleChange} className={`dark:bg-gray-700/50 ${isRcFetched ? 'cursor-not-allowed opacity-75' : ''}`} readOnly={isRcFetched} />
                                         </div>
                                         <div className="space-y-2">
                                             <Label htmlFor="insurancepremium">Premium Amount (₹)</Label>
-                                            <Input id="insurancepremium" name="insurancepremium" value={formData.insurancepremium} onChange={handleChange} placeholder="e.g. 12000" className="dark:bg-gray-700/50" />
+                                            <Input id="insurancepremium" name="insurancepremium" value={formData.insurancepremium} onChange={handleChange} placeholder="e.g. 12000" className={`dark:bg-gray-700/50 ${isRcFetched ? 'cursor-not-allowed opacity-75' : ''}`} readOnly={isRcFetched} />
                                         </div>
                                     </>
                                 )}
@@ -667,7 +737,7 @@ const AddCar = () => {
                                         Visual Damage Analysis
                                     </h4>
 
-                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                         {detectionResults.map((result, idx) => {
                                             const imgData = result.image || result.annotated_image || result.base64_image;
                                             const hasDetections = result.detections && result.detections.length > 0;

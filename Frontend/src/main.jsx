@@ -23,7 +23,7 @@ import Sellerdashboard from './pages/Sellerdashboard'
 import Testdrive from './pages/Testdrive'
 import Profile from './pages/Profile'
 import CarDetails from './pages/Cardetails'
-import UserDashboard from './pages/Userdashborad'
+import UserDashboard from './pages/UserDashboard'
 import ChatPage from './pages/ChatPage'
 import Wishlist from './pages/Wishlist'
 import AddCar from './pages/AddCar'
@@ -127,7 +127,7 @@ const router = createBrowserRouter([
   },
 ])
 createRoot(document.getElementById('root')).render(
-  <ThemeProvider>
+  <ThemeProvider defaultTheme="dark">
     <Toaster />
     <Provider store={store}>
       <RouterProvider router={router} />

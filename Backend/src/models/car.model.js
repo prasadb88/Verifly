@@ -45,12 +45,11 @@ const CarSchema = new mongoose.Schema({
         required: true
     },
     registrationnumber: {
-        type: Number,
+        type: String,
         required: false
     },
     owner: {
         type: String,
-        enum: ["First", "Second", "Third"],
         required: true
     },
     damage: {
@@ -101,6 +100,10 @@ const CarSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    description: {
+        type: String,
+        required: false
+    }
 
 }, { timestamps: true })
 

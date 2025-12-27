@@ -8,7 +8,7 @@ const initialState = {
     socket: null,
 };
 
-const baseurl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const baseurl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL : "http://localhost:8000";
 
 const authSlice = createSlice({
     name: "auth",

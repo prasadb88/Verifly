@@ -1,9 +1,6 @@
 import axios from "axios";
 
 export class carService {
-
-
-
     async analyzeCarImages(formData) {
         try {
             const response = await axios.post(
@@ -39,7 +36,8 @@ export class carService {
             throw e.response?.data || e;
         }
     }
-    async upatecar({ id, formData }) {
+
+    async updateCar({ id, formData }) {
         try {
             const response = await axios.patch(
                 `${import.meta.env.VITE_API_URL}/api/v1/cars/updatecar/${id}`,
@@ -58,32 +56,57 @@ export class carService {
     }
 
     async deletecar(id) {
-        return axios.delete(`${import.meta.env.VITE_API_URL}/api/v1/cars/deletecar/${id}`, { withCredentials: true })
-            .then(res => res.data)
-            .catch(err => {
-                throw err.response?.data || err;
-            });
+        try {
+            const response = await axios.delete(
+                `${import.meta.env.VITE_API_URL}/api/v1/cars/deletecar/${id}`,
+                { withCredentials: true }
+            );
+            return response.data;
+        } catch (e) {
+            throw e.response?.data || e;
+        }
     }
+
     async getallcars() {
         try {
             const response = await axios.get(
                 `${import.meta.env.VITE_API_URL}/api/v1/cars/getallcars`,
                 { withCredentials: true }
             );
-            return response.data; // <-- Make sure to return the data here
+            return response.data;
         } catch (e) {
             throw e.response?.data || e;
         }
     }
+
     async getcar(id) {
-        return axios.get(`${import.meta.env.VITE_API_URL}/api/v1/cars/getcar/${id}`, { withCredentials: true })
-            .then(res => res.data);
+        try {
+            const response = await axios.get(
+                `${import.meta.env.VITE_API_URL}/api/v1/cars/getcar/${id}`,
+                { withCredentials: true }
+            );
+            return response.data;
+        } catch (e) {
+            throw e.response?.data || e;
+        }
     }
 
     async getmycars() {
         try {
             const response = await axios.get(
                 `${import.meta.env.VITE_API_URL}/api/v1/cars/getmycars`,
+                { withCredentials: true }
+            );
+            return response.data;
+        } catch (e) {
+            throw e.response?.data || e;
+        }
+    }
+
+    async getRcDetails(registrationnumber) {
+        try {
+            const response = await axios.get(
+                `${import.meta.env.VITE_API_URL}/api/v1/cars/rc/${registrationnumber}`,
                 { withCredentials: true }
             );
             return response.data;

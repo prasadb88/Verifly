@@ -38,6 +38,16 @@ const CarDetails = () => {
     const [tdLoading, setTdLoading] = useState(false);
     const [tdStatus, setTdStatus] = useState({ msg: '', type: '' });
 
+    // Update Car Modal State
+    const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+    const [updateFormData, setUpdateFormData] = useState({
+        price: '',
+        color: '',
+        mileage: '',
+        description: ''
+    });
+    const [updateLoading, setUpdateLoading] = useState(false);
+
     const currentUser = useSelector(state => state.auth.user);
     const dispatch = useDispatch();
 
@@ -133,6 +143,44 @@ const CarDetails = () => {
             setLoading(false);
             // Show error (could add a toast here if sonner/toast was available, but alert is backup)
             alert("Failed to delete car. Please try again.");
+        }
+    };
+
+    const handleUpdateClick = () => {
+        setUpdateFormData({
+            price: car.price || '',
+            color: car.color || '',
+            mileage: car.mileage || '',
+            description: car.description || ''
+        });
+        setIsUpdateModalOpen(true);
+    };
+
+    const handleUpdateSubmit = async (e) => {
+        e.preventDefault();
+        setUpdateLoading(true);
+        try {
+            const data = new FormData();
+            Object.keys(updateFormData).forEach(key => {
+                data.append(key, updateFormData[key]);
+            });
+
+            await carservice.updateCar({
+                id: car._id,
+                formData: data
+            });
+
+            // Refresh details
+            const res = await carservice.getcar(id);
+            setCar(res.data || res);
+
+            setIsUpdateModalOpen(false);
+            // Optional: Success Toast
+        } catch (err) {
+            console.error("Failed to update car", err);
+            alert("Failed to update car details.");
+        } finally {
+            setUpdateLoading(false);
         }
     };
 
@@ -441,7 +489,7 @@ const CarDetails = () => {
                         {isOwnerOrAdmin && (
                             <div className="grid grid-cols-2 gap-4 pt-4 border-t border-border mt-2">
                                 <button
-                                    onClick={() => { }}
+                                    onClick={handleUpdateClick}
                                     className="px-4 py-3 bg-secondary text-secondary-foreground rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-secondary/80 transition-all border border-border"
                                 >
                                     <Edit className="w-5 h-5" />
@@ -588,6 +636,83 @@ const CarDetails = () => {
                                     className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                                 >
                                     {tdLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Confirm Booking'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Update Car Modal */}
+            {isUpdateModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="bg-card w-full max-w-lg rounded-2xl shadow-2xl border border-border overflow-hidden animate-in zoom-in-95 duration-200">
+                        <div className="p-6 border-b border-border flex justify-between items-center">
+                            <h3 className="text-xl font-bold">Update Car Details</h3>
+                            <button onClick={() => setIsUpdateModalOpen(false)} className="text-muted-foreground hover:text-foreground">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleUpdateSubmit} className="p-6 space-y-4">
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium mb-1.5">Price (₹)</label>
+                                    <input
+                                        type="number"
+                                        required
+                                        value={updateFormData.price}
+                                        onChange={(e) => setUpdateFormData({ ...updateFormData, price: e.target.value })}
+                                        className="w-full px-4 py-2.5 bg-secondary/50 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1.5">Color</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            value={updateFormData.color}
+                                            onChange={(e) => setUpdateFormData({ ...updateFormData, color: e.target.value })}
+                                            className="w-full px-4 py-2.5 bg-secondary/50 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1.5">Mileage (km)</label>
+                                        <input
+                                            type="number"
+                                            required
+                                            value={updateFormData.mileage}
+                                            onChange={(e) => setUpdateFormData({ ...updateFormData, mileage: e.target.value })}
+                                            className="w-full px-4 py-2.5 bg-secondary/50 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium mb-1.5">Description</label>
+                                    <textarea
+                                        value={updateFormData.description}
+                                        onChange={(e) => setUpdateFormData({ ...updateFormData, description: e.target.value })}
+                                        className="w-full px-4 py-2.5 bg-secondary/50 border border-border rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all h-24 resize-none"
+                                        placeholder="Enter car description..."
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="pt-4 flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsUpdateModalOpen(false)}
+                                    className="flex-1 py-3 bg-secondary text-secondary-foreground rounded-xl font-bold hover:bg-secondary/80 transition-all"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={updateLoading}
+                                    className="flex-1 py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:bg-primary/90 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                                >
+                                    {updateLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Save Changes'}
                                 </button>
                             </div>
                         </form>

@@ -5,6 +5,11 @@ import asyncHandler from "../utils/AsyncHandler.js";
 import { uploadOncloudinary, deleteOnCloudinary } from "../utils/Cloudinary.js";
 import { getreciverSocketId, io } from "../lib/socket.js";
 
+/**
+ * Helper to extract public ID from Cloudinary URL
+ * @param {string} url - The Cloudinary image URL
+ * @returns {string|null} - The public ID or null
+ */
 const extractPublicId = (url) => {
     if (!url) return null;
     try {
@@ -17,13 +22,18 @@ const extractPublicId = (url) => {
     }
 };
 
+/**
+ * @desc Get chat messages between current user and another user
+ * @route GET /api/v1/messages/:id
+ * @access Private
+ */
 const getMessagesById = asyncHandler(async (req, res) => {
     const user1_id = req.user._id;
     const { id: user2_id } = req.params;
 
     const messages = await Message.find({ $or: [{ sender: user1_id, receiver: user2_id }, { sender: user2_id, receiver: user1_id }] })
     if (!messages) {
-        throw new ApiError(400, "No Messages Found")
+        throw new ApiError(404, "No Messages Found")
     }
 
     // Mark received messages as read
@@ -35,14 +45,18 @@ const getMessagesById = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, messages, "Messages Fetched Successfully"))
 })
 
+/**
+ * @desc Send a new message
+ * @route POST /api/v1/messages/send/:id
+ * @access Private
+ */
 const sendMessage = asyncHandler(async (req, res) => {
     try {
-        const { text, image } = req.body;
+        const { text } = req.body;
         const { id: user2_id } = req.params;
         const user1_id = req.user._id;
 
         let imageUrl;
-
 
         if (req.files && req.files.length > 0) {
             const imageFile = req.files[0];
@@ -69,6 +83,11 @@ const sendMessage = asyncHandler(async (req, res) => {
     }
 })
 
+/**
+ * @desc Delete entire chat history with a specific user
+ * @route DELETE /api/v1/messages/conversation/:id
+ * @access Private
+ */
 const deleteChatHistory = asyncHandler(async (req, res) => {
     const user1_id = req.user._id;
     const { id: user2_id } = req.params;
@@ -104,6 +123,11 @@ const deleteChatHistory = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, null, "Chat history deleted successfully"));
 })
 
+/**
+ * @desc Get list of all users involved in chat
+ * @route GET /api/v1/messages/partners
+ * @access Private
+ */
 const getChatpartner = asyncHandler(async (req, res) => {
     try {
         const user1_id = req.user._id;
@@ -179,6 +203,11 @@ const getChatpartner = asyncHandler(async (req, res) => {
     }
 })
 
+/**
+ * @desc Delete a single message
+ * @route DELETE /api/v1/messages/:id
+ * @access Private
+ */
 const deleteMessage = asyncHandler(async (req, res) => {
     const { id: messageId } = req.params;
     const userId = req.user._id;

@@ -4,6 +4,11 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { Request } from "../models/request.model.js";
 import { User } from "../models/user.model.js";
 
+/**
+ * @desc Request a role change (e.g. from Buyer to Dealer)
+ * @route POST /api/v1/requests/role-change
+ * @access Private
+ */
 const requestRoleChange = asyncHandler(async (req, res) => {
     const { requestedRole, reason } = req.body;
     const userId = req.user._id;
@@ -22,7 +27,7 @@ const requestRoleChange = asyncHandler(async (req, res) => {
     });
 
     if (existingRequest) {
-        throw new ApiError(400, "You already have a pending request");
+        throw new ApiError(409, "You already have a pending request");
     }
 
     const request = await Request.create({
@@ -36,6 +41,11 @@ const requestRoleChange = asyncHandler(async (req, res) => {
     );
 });
 
+/**
+ * @desc Get all role change requests
+ * @route GET /api/v1/requests/
+ * @access Private (Admin)
+ */
 const getAllRequests = asyncHandler(async (req, res) => {
     const requests = await Request.find()
         .populate("user", "username email name role")
@@ -46,6 +56,11 @@ const getAllRequests = asyncHandler(async (req, res) => {
     );
 });
 
+/**
+ * @desc Approve or Reject a role change request
+ * @route PUT /api/v1/requests/update-status
+ * @access Private (Admin)
+ */
 const updateRequestStatus = asyncHandler(async (req, res) => {
     const { requestId, status } = req.body;
 
@@ -79,6 +94,11 @@ const updateRequestStatus = asyncHandler(async (req, res) => {
     );
 });
 
+/**
+ * @desc Get requests for current user
+ * @route GET /api/v1/requests/my-requests
+ * @access Private
+ */
 const getMyRequests = asyncHandler(async (req, res) => {
     const requests = await Request.find({ user: req.user._id }).sort({ createdAt: -1 });
     return res.status(200).json(

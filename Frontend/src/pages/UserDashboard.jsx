@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    CheckCircle, Zap, Shield, TrendingUp, ArrowRight, UserPlus, LogIn, Star, Users, Camera,
-    FileText, Car, Sun, Moon, Search, Award, BarChart3, Clock, Layers, DollarSign, Calendar,
-    ListChecks, Mail, Settings, Heart, Bell, Tag, DollarSign as DollarSignIcon, MessageSquare
+    CheckCircle, Shield, TrendingUp, ArrowRight, Star,
+    FileText, Car, Search, Clock, Layers, Calendar,
+    Mail, Settings, Bell, Tag, MessageSquare
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../components/ui/theme-provider';
@@ -278,9 +278,8 @@ const UserDashboard = () => {
                     </div>
                 </section>
 
-                {/* --- 2. Stats Overview (Buyer Focus) --- */}
                 <section className="pb-16">
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                         {stats.map((stat, index) => (
                             <StatCard
                                 key={index}

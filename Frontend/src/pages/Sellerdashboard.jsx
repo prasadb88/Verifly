@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-    CheckCircle, Zap, Shield, TrendingUp, ArrowRight, UserPlus, LogIn, Star, Users, Camera,
-    FileText, Car, Sun, Moon, Search, Award, BarChart3, Clock, Layers, DollarSign, Calendar,
-    ListChecks, Mail, Settings, Heart, Bell, Tag, DollarSign as DollarSignIcon, MessageSquare
+    TrendingUp, ArrowRight, Star,
+    FileText, Car, Layers, DollarSign, Calendar,
+    Mail, Settings, Bell, Tag, MessageSquare, Shield, Clock
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../components/ui/theme-provider';

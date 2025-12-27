@@ -17,15 +17,15 @@ const Footer = () => {
 
     const quickLinks = [
         { name: "Home", action: () => navigate('/') },
-        { name: "Features", action: () => document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' }) },
-        { name: "About Us", action: () => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' }) },
-        { name: "Contact", action: () => document.getElementById('contact')?.scrollIntoView({ behavior: 'smooth' }) },
+        { name: "Features", action: () => navigate('/features') },
+        { name: "About Us", action: () => navigate('/about-us') },
+        { name: "Contact", action: () => navigate('/contact') },
     ];
 
     const accountLinks = [
         { name: "Sign Up", action: () => navigate('/register') },
         { name: "Sign In", action: () => navigate('/login') },
-        { name: "List Your Car", action: () => navigate('/register') },
+        { name: "List Your Car", action: () => navigate('/add-car') },
     ];
 
     return (

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import testdriveservice from '../config/testdriveservice';
-import { Loader2, Calendar, Clock, MapPin, Ban, CheckCircle, XCircle, AlertTriangle, Car, Archive, History, User, Phone, MessageCircle } from 'lucide-react';
+import { Loader2, Calendar, Clock, Ban, AlertTriangle, Car, History, User, MessageCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import {
     AlertDialog,
@@ -32,7 +32,6 @@ const Testdrive = () => {
             const response = await testdriveservice.getMyRequests();
             setRequests(response.data);
         } catch (error) {
-            console.error("Failed to fetch test drives:", error);
             toast.error("Failed to load your test drives.");
         } finally {
             setLoading(false);

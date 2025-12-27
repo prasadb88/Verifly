@@ -150,13 +150,13 @@ const Login = () => {
             <div className="w-full max-w-md bg-card text-card-foreground rounded-2xl shadow-2xl p-6 md:p-8 border border-border transform transition-all duration-700 relative">
 
                 {/* Theme Toggle Button */}
-                {/* <button
+                <button
                     onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                     className="absolute top-4 right-4 p-2 rounded-full bg-secondary text-secondary-foreground hover:scale-105 transition-transform duration-300 shadow-sm"
                     aria-label="Toggle theme"
                 >
                     {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-                </button> */}
+                </button>
 
                 {/* Header */}
                 <div className="mb-8 flex flex-col items-center">
